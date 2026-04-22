@@ -1,0 +1,62 @@
+from scapy.all import sniff, IP, TCP, UDP, ICMP
+
+# -------- CONFIG --------
+FILTER_PROTOCOL = None   # Options: "TCP", "UDP", "ICMP", or None for all
+FILTER_PORT = None       # Example: 80, 443, 22, etc. (or None)
+# ------------------------
+
+def process_packet(packet):
+    if IP in packet:
+        ip_src = packet[IP].src
+        ip_dst = packet[IP].dst
+        protocol = "OTHER"
+
+        # Identify protocol
+        if TCP in packet:
+            protocol = "TCP"
+            sport = packet[TCP].sport
+            dport = packet[TCP].dport
+
+        elif UDP in packet:
+            protocol = "UDP"
+            sport = packet[UDP].sport
+            dport = packet[UDP].dport
+
+        elif ICMP in packet:
+            protocol = "ICMP"
+            sport = "-"
+            dport = "-"
+
+        else:
+            sport = "-"
+            dport = "-"
+
+        # Apply protocol filter
+        if FILTER_PROTOCOL and protocol != FILTER_PROTOCOL:
+            return
+
+        # Apply port filter
+        if FILTER_PORT:
+            if sport != FILTER_PORT and dport != FILTER_PORT:
+                return
+
+        print(f"""
+================ PACKET CAPTURED ================
+Source IP      : {ip_src}
+Destination IP  : {ip_dst}
+Protocol       : {protocol}
+Source Port    : {sport}
+Destination Port: {dport}
+==================================================
+        """)
+
+def start_sniffer():
+    print("Starting packet sniffer... Press CTRL+C to stop.")
+    
+    sniff(
+        prn=process_packet,
+        store=False
+    )
+
+if __name__ == "__main__":
+    start_sniffer()
